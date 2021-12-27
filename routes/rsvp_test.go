@@ -13,7 +13,7 @@ func TestRSVPGetAllRoute(t *testing.T) {
 
 	r := test.GetRouter()
 
-	RSVP(r)
+	Routes_RSVP(r)
 
 	req, _ := http.NewRequest("GET", "/rsvp", nil)
 
