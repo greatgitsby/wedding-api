@@ -49,16 +49,3 @@ func TestHTTPResponse(t *testing.T, r *gin.Engine, req *http.Request, f func(w *
 		t.Fail()
 	}
 }
-
-// This is a helper function that allows us to reuse some code in the above
-// test methods
-func TestMiddlewareRequest(t *testing.T, r *gin.Engine, expectedHTTPCode int) {
-
-	// Create a request to send to the above route
-	req, _ := http.NewRequest("GET", "/", nil)
-
-	// Process the request and test the response
-	TestHTTPResponse(t, r, req, func(w *httptest.ResponseRecorder) bool {
-		return w.Code == expectedHTTPCode
-	})
-}
