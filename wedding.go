@@ -1,26 +1,20 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/greatgitsby/wedding-api/api"
 	"github.com/greatgitsby/wedding-api/routes"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-func root(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, gin.H{
-		"version": "v1",
-	})
-}
-
 func main() {
 
+	var api_ctx api.Context
 	var err error
 	var port int
 	var port_str string
@@ -45,7 +39,7 @@ func main() {
 	}
 
 	// Setup DB connection
-	db, err = pgxpool.Connect(context.Background(), db_url)
+	db, err = api.GetDBConn(db_url)
 
 	if err != nil {
 		log.Fatalln("DB error:", err)
@@ -53,15 +47,19 @@ func main() {
 
 	defer db.Close()
 
+	gin.SetMode(gin.DebugMode)
+
 	// Setup server
 	s := gin.Default()
 
-	// Root route
-	s.GET("/", root)
+	api_ctx.DBPool = db
+
+	// Register root routes
+	routes.Routes_Root(s, &api_ctx)
 
 	// Register RSVP routes
-	routes.Routes_RSVP(s, db)
+	routes.Routes_RSVP(s, &api_ctx)
 
 	// Listen
-	s.Run(fmt.Sprintf("0.0.0.0:%d", port))
+	s.Run(fmt.Sprintf(":%d", port))
 }

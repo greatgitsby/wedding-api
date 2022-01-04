@@ -1,15 +1,38 @@
 package test
 
 import (
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/greatgitsby/wedding-api/api"
 )
+
+var DB_URL string = "postgres://localhost/test"
+var API_CTX *api.Context = nil
+
+func GetContext() *api.Context {
+	if API_CTX == nil {
+		db, err := api.GetDBConn(DB_URL)
+
+		if err != nil {
+			log.Fatalln("Could not get DB pool")
+		}
+
+		API_CTX = &api.Context{
+			DBPool: db,
+		}
+	}
+
+	return API_CTX
+}
 
 // Helper function to create a router during testing
 func GetRouter() *gin.Engine {
+	gin.SetMode(gin.TestMode)
+
 	return gin.Default()
 }
 

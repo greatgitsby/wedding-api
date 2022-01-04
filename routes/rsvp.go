@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/greatgitsby/wedding-api/api"
 )
 
 type RSVP struct {
@@ -18,21 +18,27 @@ type RSVP struct {
 }
 
 type NewRSVP struct {
-	FirstName                 string `json:"first_name"`
-	LastName                  string `json:"last_name"`
-	Email                     string `json:"email"`
-	AdditionalGuestsAttending int    `json:"additional_guests_attending"`
-	Attending                 bool   `json:"attending"`
+	FirstName                 string `json:"first_name" binding:"required"`
+	LastName                  string `json:"last_name" binding:"required"`
+	Email                     string `json:"email" binding:"required"`
+	AdditionalGuestsAttending int    `json:"additional_guests_attending" binding:"required"`
+	Attending                 bool   `json:"attending" binding:"required"`
 }
 
-func rsvp_new(c *gin.Context, db *pgxpool.Pool) {
-	c.JSON(http.StatusCreated, gin.H{})
+func rsvp_new(resp *gin.Context, ctx *api.Context) {
+	var new_rsvp NewRSVP
+
+	if err := resp.ShouldBindJSON(&new_rsvp); err != nil {
+		resp.AbortWithError(http.StatusBadRequest, err)
+	} else {
+		resp.JSON(http.StatusCreated, new_rsvp)
+	}
 }
 
-func rsvp_get_all(c *gin.Context, db *pgxpool.Pool) {
+func rsvp_get_all(resp *gin.Context, ctx *api.Context) {
 	rsvps := []RSVP{}
 
-	if rows, err := db.Query(context.Background(), "select * from rsvps"); err == nil {
+	if rows, err := ctx.DBPool.Query(context.Background(), "select * from rsvps"); err == nil {
 		for rows.Next() {
 			var r RSVP
 
@@ -47,7 +53,7 @@ func rsvp_get_all(c *gin.Context, db *pgxpool.Pool) {
 
 			// Exit if there is an error, responding as such
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{
+				resp.JSON(http.StatusInternalServerError, gin.H{
 					"error": "Error reading database",
 				})
 
@@ -58,36 +64,25 @@ func rsvp_get_all(c *gin.Context, db *pgxpool.Pool) {
 			rsvps = append(rsvps, r)
 		}
 
-		c.JSON(http.StatusOK, rsvps)
+		resp.JSON(http.StatusOK, rsvps)
 	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{
+		resp.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Error reading database",
 		})
 	}
 }
 
-func rsvp_update(c *gin.Context, db *pgxpool.Pool) {
-	c.JSON(http.StatusOK, gin.H{})
+func rsvp_update(resp *gin.Context, ctx *api.Context) {
+	resp.JSON(http.StatusOK, gin.H{})
 }
 
-func handler(handle func(c *gin.Context, db *pgxpool.Pool), db *pgxpool.Pool) gin.HandlerFunc {
-
-	// Pass db to handle func
-	closure := func(c *gin.Context) {
-		handle(c, db)
-	}
-
-	return gin.HandlerFunc(closure)
-}
-
-func Routes_RSVP(server *gin.Engine, db *pgxpool.Pool) {
+func Routes_RSVP(server *gin.Engine, ctx *api.Context) {
 
 	// Create group of routes regarding RSVPs
 	g := server.Group("/rsvp")
 	{
-		g.GET("", handler(rsvp_get_all, db))
-		g.POST("", handler(rsvp_new, db))
-		g.PUT("", handler(rsvp_update, db))
-
+		g.GET("", handler(rsvp_get_all, ctx))
+		g.POST("", handler(rsvp_new, ctx))
+		g.PUT("", handler(rsvp_update, ctx))
 	}
 }
