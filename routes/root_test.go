@@ -8,8 +8,8 @@ import (
 	"github.com/greatgitsby/wedding-api/test"
 )
 
-func TestRSVPGetAllRoute(t *testing.T) {
-	req, _ := http.NewRequest("GET", "/rsvp", nil)
+func TestRootRoute(t *testing.T) {
+	req, _ := http.NewRequest("GET", "/", nil)
 
 	test.TestHTTPResponse(t, ROUTER, req, func(w *httptest.ResponseRecorder) bool {
 		return w.Code == http.StatusOK
