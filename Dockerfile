@@ -1,12 +1,13 @@
-FROM golang:1.17.6 AS builder
-WORKDIR /usr/src/app
-COPY . .
-RUN go get
-RUN go build wedding.go
+# Sample from @citizen428 https://dev.to/citizen428/comment/6cmh
+FROM golang:alpine as build
+RUN apk add --no-cache ca-certificates
+WORKDIR /build
+ADD . .
+RUN CGO_ENABLED=0 GOOS=linux \
+    go build -ldflags '-extldflags "-static"' -o app
 
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
-COPY --from=builder /usr/src/app/.env ./
-COPY --from=builder /usr/src/app/wedding ./
-CMD ["./wedding"]  
+FROM scratch
+COPY --from=build /etc/ssl/certs/ca-certificates.crt \
+     /etc/ssl/certs/ca-certificates.crt
+COPY --from=build /build/app /app
+ENTRYPOINT ["/app"]
