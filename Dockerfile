@@ -10,4 +10,5 @@ FROM scratch
 COPY --from=build /etc/ssl/certs/ca-certificates.crt \
      /etc/ssl/certs/ca-certificates.crt
 COPY --from=build /build/app /app
+COPY --from=build /build/.env /
 ENTRYPOINT ["/app"]
