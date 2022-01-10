@@ -6,12 +6,21 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gin-gonic/gin"
 	"github.com/greatgitsby/wedding-api/api"
 	"github.com/greatgitsby/wedding-api/routes"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/joho/godotenv"
 )
 
+func LoadEnv() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+		os.Exit(1)
+	}
+}
 func main() {
 
 	var api_ctx api.Context
@@ -22,6 +31,9 @@ func main() {
 	var db *pgxpool.Pool
 	var db_url string
 	var db_url_exists bool
+	var sess *session.Session
+
+	LoadEnv()
 
 	port_str, port_exists = os.LookupEnv("PORT")
 	db_url, db_url_exists = os.LookupEnv("DATABASE_URL")
@@ -39,10 +51,12 @@ func main() {
 	}
 
 	// Setup DB connection
-	db, err = api.GetDBConn(db_url)
-
-	if err != nil {
+	if db, err = api.GetDBConn(db_url); err != nil {
 		log.Fatalln("DB error:", err)
+	}
+
+	if sess, err = api.GetAWSSession(); err != nil {
+		log.Fatalln("AWS error:", err)
 	}
 
 	defer db.Close()
@@ -53,12 +67,16 @@ func main() {
 	s := gin.Default()
 
 	api_ctx.DBPool = db
+	api_ctx.AWSSession = sess
 
 	// Register root routes
 	routes.Routes_Root(s, &api_ctx)
 
 	// Register RSVP routes
 	routes.Routes_RSVP(s, &api_ctx)
+
+	// Register image upload routes
+	routes.Routes_Images(s, &api_ctx)
 
 	// Listen
 	s.Run(fmt.Sprintf(":%d", port))
